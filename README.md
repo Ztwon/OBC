@@ -138,7 +138,6 @@ setenv bootcmd "fatload mmc 0:1 ${loadaddr} zImage; fatload mmc 0:1 ${fdt_addr} 
 
 
 
-<img src="C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260402210326195.png" alt="image-20260402210326195"  />
 
 为什么 uboot 的起始地址是 0x00000400（1024 字节处）而不是 0？
 
@@ -189,7 +188,6 @@ U_BOOT_CMD(
 /include/configs/mx6ullevk.h 告诉uboot 如何为这个板子进行裁剪
 
 
-
 如何通过tftp实现烧录zImage和DTB？
 
 设置IP之后 用tftp直接把zImage下载到内存的指定地址 
@@ -215,23 +213,6 @@ bootz 0x80800000 - 0x83000000
 
 从RK最新的SDK独立完成移植
 
-
-
-入口：
-
-![image-20260403230050599](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260403230050599.png)
-
-之后 会跳转到obc-1.0.0  代码就都在这了
-
-![image-20260403230224743](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260403230224743.png)
-
-![image-20260404113224124](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260404113224124.png)
-
-出口 加载内核
-
-![image-20260403230441140](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260403230441140.png)
-
-分区信息解耦到设备树里
 
 
 
@@ -336,14 +317,7 @@ typedef struct BOARD_ABILITY_BLK_PARTS
 
 该全局结构体 在obc_bootargs_blkparts_set中传递给blkdevparts 最后通过setenv bootargs 写入环境变量
 
-![image-20260406164929222](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260406164929222.png)
-
-
-
-![image-20260406203221415](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260406203221415.png)
-
-
-
+![OBC](./OBC.png)
 
 
 ***\*2025.12-2026.03\****                    ***\*RK3566嵌入式系统框架（OBC）设计与实现\****
