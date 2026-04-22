@@ -682,7 +682,7 @@ TF卡执行upfdt之后，先把fdt搬到内存0x84000000,检测没问题之后�
 
  
 
-![img](OBC.assets/\wps24.jpg) 
+![img](OBC.assets/wps24.jpg) 
 
 ![img](OBC.assets/wps25.jpg) 
 
