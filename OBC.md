@@ -315,11 +315,11 @@ typedef struct BOARD_ABILITY_BLK_PARTS
 
 该全局结构体 在obc_bootargs_blkparts_set中传递给blkdevparts 最后通过setenv bootargs 写入环境变量
 
-![image-20260406164929222](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260406164929222.png)
+![image-20260406164929222](OBC.assets/image-20260406164929222.png)
 
 
 
-![image-20260406203221415](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260406203221415.png)
+![image-20260406203221415](OBC.assets/image-20260406203221415.png)
 
 
 
