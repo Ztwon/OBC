@@ -204,7 +204,7 @@ bootz 0x80800000 - 0x83000000
 
 ![image-20260403230224743](OBC.assets/image-20260403230224743.png)
 
-![image-20260404113224124](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260404113224124.png)
+![image-20260404113224124](OBC.assets/image-20260404113224124.png)
 
 出口 加载内核
 
