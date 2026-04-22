@@ -117,7 +117,7 @@ setenv bootcmd "fatload mmc 0:1 ${loadaddr} zImage; fatload mmc 0:1 ${fdt_addr} 
 
 
 
-<img src="C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260402210326195.png" alt="image-20260402210326195"  />
+<img src="OBC.assets/image-20260402210326195.png" alt="image-20260402210326195"  />
 
 为什么 uboot 的起始地址是 0x00000400（1024 字节处）而不是 0？
 
@@ -198,17 +198,17 @@ bootz 0x80800000 - 0x83000000
 
 入口：
 
-![image-20260403230050599](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260403230050599.png)
+![image-20260403230050599](OBC.assets/image-20260403230050599.png)
 
 之后 会跳转到obc-1.0.0  代码就都在这了
 
-![image-20260403230224743](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260403230224743.png)
+![image-20260403230224743](OBC.assets/image-20260403230224743.png)
 
 ![image-20260404113224124](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260404113224124.png)
 
 出口 加载内核
 
-![image-20260403230441140](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260403230441140.png)
+![image-20260403230441140](OBC.assets/image-20260403230441140.png)
 
 分区信息解耦到设备树里
 
@@ -353,7 +353,7 @@ RK3566 嵌入式系统框架（OBC）设计与实现
 
 把地址分割为
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps1.jpg) 
+![img](OBC.assets/图片9.png)
 
 ● 设计 TFTP+本地双通道升级链路，适配现场 OTA 场景
 
@@ -418,21 +418,21 @@ make menuconfig 的过程是：修改 .config。
 
 5.从TF卡启动，但是卡在网络 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps2.jpg) 
+![img](OBC.assets/wps2.jpg) 
 
 解决办法：make uboot_menuconfig 把 Net关闭  先屏蔽网络
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps3.jpg) 
+![img](OBC.assets/wps3.jpg) 
 
 出现问题：修改的menu会被覆盖掉
 
 在makefile里把方块里的加上 不然编译的不对 系统默认回去找之前的defconfig
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps4.jpg) 
+![img](OBC.assets/wps4.jpg) 
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps5.jpg) 
+![img](OBC.assets/wps5.jpg) 
 
  
 
@@ -548,7 +548,7 @@ upfdt failed -1
 
 该defconfig文件在make之后会强制重命名并覆盖到 U-Boot 源码目录下的 .config
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps6.jpg) 
+![img](OBC.assets/wps6.jpg) 
 
 等于make platform之后 会把.config重置 相当于回复出厂设置了 （因为defconfig是静态的，menuconfig只能修改到.config
 
@@ -560,29 +560,29 @@ upfdt failed -1
 
 出现问题：编译出来的uboot是正确的，但是烧录到TF里，发现还是老的uboot，为什么？
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps7.jpg) 
+![img](OBC.assets/wps7.jpg) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps8.jpg) 
+![img](OBC.assets/wps8.jpg) 
 
  可能是什么缓存的问题
 
 解决办法：把TF卡连到windows，格式化一下，然后连到ubuntu，他会默认挂载，解除挂载之后
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps9.jpg) 
+![img](OBC.assets/wps9.jpg) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps10.jpg) 
+![img](OBC.assets/wps10.jpg) 
 
 能顺利烧进去uboot
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps11.jpg) 
+![img](OBC.assets/wps11.jpg) 
 
 说明
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps12.jpg) 
+![img](OBC.assets/图片7.png) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps13.jpg)、
+![img](OBC.assets/图片8.png)、
 
  
 
@@ -604,23 +604,23 @@ tftpd-hpa里设置好一个文件夹
 
 如何实现的obc1.0.0与sdk解耦开的？？
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps14.jpg) 
+![img](OBC.assets/图片1.png) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps15.jpg) 
+![img](OBC.assets/wps15.jpg) 
 
 总而言之，就是跳转到sdk里进行make,然后把结果cp回来
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps16.jpg) 
+![img](OBC.assets/wps16.jpg) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps17.jpg) 
+![img](OBC.assets/图片4.png) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps18.jpg) 
+![img](OBC.assets/图片5.png) 
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps19.jpg) 
+![img](OBC.assets/wps19.jpg) 
 
 一直出现时间超时报错问题？？
 
@@ -642,7 +642,7 @@ TFTP_OPTIONS="--secure -l -c"
 
 sudo ifconfig ens33 10.10.0.56 netmask 255.255.0.0
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps20.jpg) 
+![img](OBC.assets/wps20.jpg) 
 
  
 
@@ -654,7 +654,7 @@ sudo ifconfig ens33 10.10.0.56 netmask 255.255.0.0
 
 板子启动代码的运行顺序：
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps21.jpg) 
+![img](OBC.assets/图片3.png) 
 
 Obc就是在board_r.c的最后加入的一个模块
 
@@ -662,13 +662,13 @@ Obc就是在board_r.c的最后加入的一个模块
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps22.jpg) 
+![img](OBC.assets/图片2.png) 
 
 TF卡执行upfdt之后，先把fdt搬到内存0x84000000,检测没问题之后再搬到0x80000的eMMC地址
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps23.jpg) 
+![img](OBC.assets/图片1.png) 
 
  
 
@@ -682,13 +682,13 @@ TF卡执行upfdt之后，先把fdt搬到内存0x84000000,检测没问题之后�
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps24.jpg) 
+![img](OBC.assets/\wps24.jpg) 
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps25.jpg) 
+![img](OBC.assets/wps25.jpg) 
 
 该BOARD_ABILITY_BLK_PARTS_T数组是什么
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps26.jpg) 
+![img](OBC.assets/wps26.jpg) 
 
  
 
@@ -718,11 +718,11 @@ TF卡执行upfdt之后，先把fdt搬到内存0x84000000,检测没问题之后�
 
 为什么只有fdt和kernel用了pack的协议头？
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps27.jpg) 
+![img](OBC.assets/wps27.jpg) 
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps28.jpg) 
+![img](OBC.assets/wps28.jpg) 
 
  
 
@@ -730,7 +730,7 @@ TF卡执行upfdt之后，先把fdt搬到内存0x84000000,检测没问题之后�
 
  
 
-![img](file:///C:\Users\Admin\AppData\Local\Temp\ksohtml22096\wps29.jpg) 
+![img](OBC.assets/Snipaste_2026-04-22_14-57-46.png) 
 
 Uboot启动日志
 
