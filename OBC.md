@@ -204,7 +204,7 @@ bootz 0x80800000 - 0x83000000
 
 ![image-20260403230224743](OBC.assets/image-20260403230224743.png)
 
-![image-20260404113224124](OBC.assets/image-20260404113224124.png)
+![image-20260404113224124](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260404113224124.png)
 
 出口 加载内核
 
@@ -319,7 +319,7 @@ typedef struct BOARD_ABILITY_BLK_PARTS
 
 
 
-![image-20260406203221415](OBC.assets/image-20260406203221415.png)
+![image-20260406203221415](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260406203221415.png)
 
 
 
@@ -682,7 +682,7 @@ TF卡执行upfdt之后，先把fdt搬到内存0x84000000,检测没问题之后�
 
  
 
-![img](OBC.assets/wps24.jpg) 
+![img](OBC.assets\wps24.jpg) 
 
 ![img](OBC.assets/wps25.jpg) 
 
@@ -736,10 +736,6 @@ Uboot启动日志
 
  
 
-明天来整一下AB分区的事
-
- 
-
 1. 注册sysflag结构体
 2. 通过该结构体来判断目前是要升级哪个分区、
 
@@ -750,7 +746,6 @@ Uboot启动日志
 1. Sysflag可以使一个int，0、1,判断从哪个分区来读
 2. 判断当前是哪个分区在启动，从一个分区升级
 3. 来一个计数int，若连续三次这个分区启动失败就从另一个分区启动
-4. 
 
  
 
@@ -760,4 +755,124 @@ Uboot启动日志
 2. Sysflag可以使一个int，0、1,判断从哪个分区来读
 3. 判断当前是哪个分区在启动，从一个分区升级
 4. 来一个计数int，若连续三次这个分区启动失败就从另一个分区启动
+
+
+
+PACK:
+
+1.通过pack.c，数据前面加入协议头,magic，size,crc等
+
+![img](OBC.assets/pack.png)
+
+2.在cmd_updatex.c中把协议头解开，把数据解析出来（不涉及到unpack
+
+3.写数据到eMMC时，把协议头也写进去
+
+4.读数据的时候，通过把第一块blk跳过，达到直接读bin数据的功能
+
+
+
+# 目前需要实现：
+
+### 1.双分区升级
+
+其实bsp工程师只需要往两个分区一起升级，主要实现崩溃分区切换即可，这是应用层做的，但是也可以研究一下
+
+通过应用层直接IO文件操作 read write
+
+### 2.崩溃三次自动切换分区启动
+
+目前实现：
+
+#### 1.通过sysflag切换分区
+
+```
+// 定义结构体
+typedef struct OBC_SYSFLAG_HEAD
+{
+    char magic[8];          /*SYSFLAG*/
+    int start_part;
+}__attribute__((packed)) OBC_SYSFLAG_HEAD_T;
+```
+
+#### 2.手动模拟崩溃（待完成 cmd_sysflag.c文件
+
+思路：通过U_BOOT_CMD封装，实现set sysflag 0/1 （若目前是0 则set为1 然后reset之后下面打印为0则成功
+
+![img](OBC.assets/Snipaste_2026-04-22_23-10-23.png)
+
+最好通过strncpy(pstSysflag->magic, "SYSFLAG", 7);赋值，通过sprintf很容易出错
+
+#### 3.根据切换的分区先实现自动切换kernel0/1 在cmd_bootk里（待实现
+
+
+
+### 3.CRC32校验
+
+#### 	1）.在pack.c代码中 （查表法
+
+```
+static unsigned int calculate_crc32(const unsigned char *data, unsigned int length)
+{
+    unsigned int crc = 0xFFFFFFFF;
+    for (unsigned int i = 0; i < length; i++)
+    {
+        crc = crc32_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFF;
+}
+```
+
+并重新编译pack工具
+
+#### 	2）obc_blk.c代码中加入 （查表法 要确保表一致
+
+```
+crc32_table标准表= []...
+
+unsigned int obc_crc32(const unsigned char *data, unsigned int length)
+{
+    unsigned int crc = 0xFFFFFFFF;
+    for (unsigned int i = 0; i < length; i++)
+    {
+        crc = crc32_table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFF;
+}
+
+/* Verify package CRC - returns 0 on success, -1 on mismatch */
+int obc_verify_pack_crc(OBC_PACK_HEAD_T *pstHead, const unsigned char *data)
+{
+    unsigned int calc_crc = obc_crc32(data, pstHead->file_size);
+    if (calc_crc != (unsigned int)pstHead->crc)
+    {
+        printf("CRC mismatch: calc=0x%08X, header=0x%08X\n", calc_crc, pstHead->crc);
+        return -1;
+    }
+    printf("CRC check passed: 0x%08X\n", calc_crc);
+    return 0;
+}
+```
+
+#### 	3）在cmd_updatex.c中do_updatex_emmc_head_check调用上述函数 对比crc是否一致
+
+```
+    /* 2# CRC verification */
+    if (0 != obc_verify_pack_crc(pstHead, data))
+    {
+        printf("CRC check failed, upgrade aborted\n");
+        return -1;
+    }
+
+```
+
+成功实现：
+
+![img](OBC.assets/CRC32.png)
+
+
+
+
+
+
 
