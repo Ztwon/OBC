@@ -69,257 +69,9 @@
 
 **套装 B**：fdt1 + kernel1 + rootfs1
 
-### U-Boot 是如何决定跳 A 还是跳 B 的？
-
-U-Boot 内部通常维护着几个“魔术变量”：
-
-- **boot_slot**：记录当前应该启动 0 还是 1。
-
-- **boot_count**：记录启动失败的次数。
-
-  如果启动 rootfs1 时，连续 3 次在 1 分钟内重启（说明新系统崩溃了），U-Boot 会自动把 boot_slot 改回 0，实现**自动回滚**。
-
-备注提问：如何切换系统？
-
-1.root=/dev/mmcblk1p5 修改为root=/dev/mmcblk1p4 对应rootfs0
-
-2.在**bootcmd**里配合修改地址 
-
-```
-# 从 0x200000 (kernel0) 读 16MB 到内存
-mmc read 0x80800000 0x1000 0x8000 
-# 从 0x80000 (fdt0) 读 512KB 到内存
-mmc read 0x83000000 0x400 0x400
-# 设置 root 指向 p4
-setenv bootargs "... root=/dev/mmcblk1p4 ..."
-# 启动
-bootz 0x80800000 - 0x83000000
-```
-
-
-
-备注提问：uboot是如何知道要去eMMC的哪里找zImage和DTB，又如何知道该放到RAM的哪里？
-
-回答：当你把上述两者结合起来，就形成了 bootcmd。以下是一个真实的 i.MX6 启动流程解析：
-
-code
-
-```
-# U-Boot 内部执行的一行指令：
-setenv bootcmd "fatload mmc 0:1 ${loadaddr} zImage; fatload mmc 0:1 ${fdt_addr} imx6.dtb; bootz ${loadaddr} - ${fdt_addr}"
-```
-
-**拆解逻辑：**
-
-1. **第一步**：去 eMMC（mmc 0:1）找名为 zImage 的文件，把它搬运到内存地址 ${loadaddr} (即 0x80800000)。
-2. **第二步**：去 eMMC（mmc 0:1）找名为 imx6.dtb 的文件，把它搬到内存地址 ${fdt_addr} (即 0x83000000)。
-3. **第三步**：执行 bootz，告诉 CPU：“去 0x80800000 找内核，去 0x83000000 找设备树，开始跑吧！”
-
 
 
 <img src="OBC.assets/image-20260402210326195.png" alt="image-20260402210326195"  />
-
-为什么 uboot 的起始地址是 0x00000400（1024 字节处）而不是 0？
-
-补习点：因为 EMMC 的前 1024 字节通常留给分区的 MBR 或特定的启动头。
-
-（**引导芯片的BootROM正确加载并启动U-Boot** ，**分区的 MBR** 就是磁盘的第一个扇区中那个**包含分区表和引导代码的数据结构**
-
-- 如果设备是作为 **PC 硬盘**使用，偏移 0x0 就是 MBR。
-- 如果设备是作为 **嵌入式启动介质**（比如存放 U-Boot），偏移 0x0 就是芯片厂商的启动头。
-
-
-
-
-
-ROM 代码把SPL搬入SRAM
-
-SPL初始化DDR，运行内存
-
-把uboot拉入DDR内存
-
-uboot是个程序，查看bootcmd 把zImage DTB 拉入DDR
-
-通过设置bootargs 记到DTB /chosen结点  emmc分区情况 信息打印到哪个串口 rw权限
-
-将DTB的地址记到R2寄存器 然后进入zImage的首地址开始运行 地址头部会有解压的代码
-
-调用head.S 进入kernel 开始解析dtb 根据设备树信息初始化各种驱动 时钟 中断等
-
-然后调用函数运行第一个用户程序 PID=1
-
-
-
-当敲入upfs命令时 会触发do_upfs函数
-
-```
-U_BOOT_CMD(
-    upfs,         // 命令名称
-    1,            // 最大参数个数（包括命令本身，即执行时不需要额外参数）
-    0,            // 是否可重复（0 表示不可重复）
-    do_upfs,      // 命令对应的执行函数
-    "updatex up <uboot/kernel/all>",   // 简短帮助信息
-    "updatex up <uboot/kernel\n"       // 详细帮助信息
-);
-```
-
-
-
-/include/configs/mx6ullevk.h 告诉uboot 如何为这个板子进行裁剪
-
-
-
-如何通过tftp实现烧录zImage和DTB？
-
-设置IP之后 用tftp直接把zImage下载到内存的指定地址 
-
-```
-setenv ipaddr 192.168.1.100      # 开发板 IP
-setenv serverip 192.168.1.10     # 主机（TFTP 服务器）IP
-setenv gatewayip 192.168.1.1     # 网关（可选）
-setenv netmask 255.255.255.0
-```
-
-```
-tftp 0x80800000 zImage
-# 2. 加载设备树到另一内存地址（例如 0x83000000）
-tftp 0x83000000 imx6ull-14x14-evk.dtb
-# 3. 启动内核
-bootz 0x80800000 - 0x83000000
-```
-
-任务：编译出来镜像 然后加打印 可以的话改动一下
-
-
-
-从RK最新的SDK独立完成移植
-
-
-
-入口：
-
-![image-20260403230050599](OBC.assets/image-20260403230050599.png)
-
-之后 会跳转到obc-1.0.0  代码就都在这了
-
-![image-20260403230224743](OBC.assets/image-20260403230224743.png)
-
-![image-20260404113224124](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260404113224124.png)
-
-出口 加载内核
-
-![image-20260403230441140](OBC.assets/image-20260403230441140.png)
-
-分区信息解耦到设备树里
-
-
-
-代码调用流程：
-
-1.入口：D:\OBC_Code-master\2-Imx6ull-Board\sdk-source\uboot\uboot-nxp-2024.04\common\board_r.c里的init_sequence_r[]里的do_obcboot
-
-该init_sequence_r作用是：在 U-Boot 把自己从 Flash/SRAM 搬运到 **DDR（内存）** 运行之后，它需要按照顺序执行这个列表里的函数，把硬件驱动、环境变量、网络系统等一个个“唤醒”。
-
-2.通过do_obcboot 调用里面的obc_board_init函数，
-
-实现板级分离，针对每个板子有单独的初始化，板级抽象层（BAL），目前是对6u的四个初始化
-
-#if defined(CONFIG_BOARD_CONFIG_IMX6ULL)
-    g_obc_ability_manager.pstBoard = &g_imx6ull_board;
-#endif
-
-    /* 1# 板级硬件初始化 */
-    知道当前是从 SD 卡还是 eMMC 启动
-    获得块设备的操作句柄
-    明确关键数据在内存中的存放位置
-    (void)obc_board_hw_init();
-    
-    /* 2# 环境变量设置*/
-    网络配置（TFTP 升级用）
-    内存地址映射
-    启动介质自适应的自动启动命令
-    它使得板子在 SD 卡启动时自动从 FAT 分区加载内核，在 eMMC 启动时调用 OBC 框架的 bootk 命令从裸分区引导，实现了灵活的启动策略。
-    (void)obc_board_env_init();
-    
-    /* 3# 设备树解析 */
-    /* 1# 加载设备树,检查设备树是否有效 */
-    /* 2# 解析设备树填充ability的dev part分区信息 */
-    涉及调用obc_fdt_load_to_mem 写死了从fdt0获取设备树并加载到内存 --->  obc_blk_read_part_by_name --->obc_blk_find_part_by_name
-    obc_blk_parse_fdt
-    
-    (void)obc_board_fdt_init();
-    
-    /* 3# 启动参数配置解析 */
-    /* 设置启动的bootargs参数，包含console、mmcblk */
-    涉及调用 obc_bootargs_set
-    (void)obc_board_args_init();
-
-
-
-
-
-问题：
-
-```
-typedef struct BOARD_CONFIG_TABLE
-{
-    /*
-        board_hw_init:板级硬件初始化
-        board_env_init：板级设备树初始化
-        board_fdt_init：板级设备树初始化
-        board_args_init：板级bootargs参数初始化
-    */
-    int (*board_hw_init)(BOARD_ABILITY_TABLE_T *);
-    int (*board_env_init)(BOARD_ABILITY_TABLE_T *);
-    int (*board_fdt_init)(BOARD_ABILITY_TABLE_T *);
-    int (*board_args_init)(BOARD_ABILITY_TABLE_T *);
-}BOARD_CONFIG_TABLE_T; 
-```
-
-该函数指针 在哪里被赋值？？
-
-D:\OBC Code-master\2-Imx6ull-Boardlobc-1.0.0\bootloader\obcbase\board\imx\board_ config_imx6ull.c的
-
-```
-BOARD_CONFIG_TABLE_T g_imx6ull_board = {
-    .board_hw_init          = imx6ull_board_hw_init,
-    .board_env_init         = imx6ull_board_env_init,
-    .board_fdt_init         = imx6ull_board_fdt_init,
-    .board_args_init        = imx6ull_board_args_init,
-};  //赋值
-```
-
-四个函数内有obc_fdt_load_to_mem，obc_bootargs_set函数 定义在D:\OBC Code-master\2-Imx6ull-Board\obc-1.0.0\bootloader\obcbase\commonlobc blk.c
-
-其中  obc_bootargs_set 实现了    // 将当前bootargs和blkdevparts拼接 
-
-len = snprintf(bootargs, sizeof(bootargs), "setenv bootargs %s blkdevparts=%s", pConsole, blkdevparts);
-
-
-
-如何从设备树里获取partitions节点信息、分区情况？？
-
-obc_board_fdt_init -->imx6ull_board_fdt_init --->obc_blk_parse_fdt--> obc_blk_parse_partitions 解析节点 填充信息
-
-通过
-
-```
-typedef struct BOARD_ABILITY_BLK_PARTS
-{
-    char lable[16];
-    uint32_t addr;
-    uint32_t size;
-    uint8_t flag;
-}BOARD_ABILITY_BLK_PARTS_T;
-```
-
-该全局结构体 在obc_bootargs_blkparts_set中传递给blkdevparts 最后通过setenv bootargs 写入环境变量
-
-![image-20260406164929222](OBC.assets/image-20260406164929222.png)
-
-
-
-![image-20260406203221415](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20260406203221415.png)
 
 
 
@@ -349,19 +101,15 @@ RK3566 嵌入式系统框架（OBC）设计与实现
 
 通过obc_blk_read_part_by_name函数从设备树获取地址
 
-● 高可靠 A/B 冗余升级架构，构建覆盖 FDT、Kernel、RootFS 的全镜像双分区（A/B）升级体系，支持全量更新模式
+●  构建覆盖 FDT/Kernel/RootFS 的全镜像 A/B 双分区升级体系，适配现场 OTA 场景
 
-把地址分割为
+把地址分割为，通过sysflag的start_part配合iPartType的iPartType，实现双分区切换
+
+特别注意的是，fdt需要额外写，因为这个地址是我们定死的，其他的地址都得从这里拿来
 
 ![img](OBC.assets/图片9.png)
 
-● 设计 TFTP+本地双通道升级链路，适配现场 OTA 场景
-
-***\*本地\*******\*：\****通过TF或eMMC烧录
-
-***\*TFTP：\****通过tftp这个文件夹，服务端和客户端通过socket将uboot kernel 传到板子上
-
-● 设计 512 字节的私有协议头，通过 OBCFS 魔数识别和 CRC32 校验实现了镜像的一站式合法性与完整性验证
+● 定义 512 字节私有协议头（魔数识别 + CRC32 校验）实现镜像完整性闭环验证
 
 D:\OBC_Code-master\2-Imx6ull-Board\obc-1.0.0\tools\pack_tools\pack\pack.c文件里，我为镜像设计了一套 512 字节的私有封装协议，通过 Magic 识别和 CRC32 校验实现了镜像的一站式合法性与完整性验证。通过扇区对齐设计，优化了 U-Boot 阶段的解包效率，有效规避了 EMMC 烧录过程中的静默数据损坏风险。”
 
@@ -736,25 +484,7 @@ Uboot启动日志
 
  
 
-1. 注册sysflag结构体
-2. 通过该结构体来判断目前是要升级哪个分区、
-
- 
-
- 
-
-1. Sysflag可以使一个int，0、1,判断从哪个分区来读
-2. 判断当前是哪个分区在启动，从一个分区升级
-3. 来一个计数int，若连续三次这个分区启动失败就从另一个分区启动
-
- 
-
-问题：
-
-1. 开局定死加载fdt0
-2. Sysflag可以使一个int，0、1,判断从哪个分区来读
-3. 判断当前是哪个分区在启动，从一个分区升级
-4. 来一个计数int，若连续三次这个分区启动失败就从另一个分区启动
+ 注意：全局的结构体每次重启会被重置，只有eMMC里的数据不会丢失
 
 
 
@@ -780,6 +510,8 @@ PACK:
 
 通过应用层直接IO文件操作 read write
 
+tips:可以研究一下若文件很大，有2G的情况下，内存很小，该如何10M10M的往里写呢？？
+
 ### 2.崩溃三次自动切换分区启动
 
 目前实现：
@@ -795,7 +527,11 @@ typedef struct OBC_SYSFLAG_HEAD
 }__attribute__((packed)) OBC_SYSFLAG_HEAD_T;
 ```
 
-#### 2.手动模拟崩溃（待完成 cmd_sysflag.c文件
+![img](OBC.assets/Snipaste_2026-04-23_19-54-44.png)
+
+成功实现识别magic = SYSFLAG，success获得当前分区号
+
+#### 2.手动模拟崩溃（已完成
 
 思路：通过U_BOOT_CMD封装，实现set sysflag 0/1 （若目前是0 则set为1 然后reset之后下面打印为0则成功
 
@@ -803,9 +539,97 @@ typedef struct OBC_SYSFLAG_HEAD
 
 最好通过strncpy(pstSysflag->magic, "SYSFLAG", 7);赋值，通过sprintf很容易出错
 
-#### 3.根据切换的分区先实现自动切换kernel0/1 在cmd_bootk里（待实现
 
 
+目前问题：
+
+![img](OBC.assets/Snipaste_2026-04-23_17-28-40.png)
+
+始终error get sysflag
+
+修改地址也没用
+
+![img](OBC.assets/Snipaste_2026-04-23_17-38-28.png)
+
+![image-20260423173639504](OBC.assets/image-20260423173639504.png)
+
+
+
+```
+    /* 1# 读取一个块，获取数据头 */
+    ulCnt = blk_dread(pstAbi->stBlk.pstBlkDev, start, 1, (void *)pstAbi->stBoot.uiTmpAddr);
+    if (1 != ulCnt)
+    {
+        printf("get haed info error\n");
+        return -1;
+    }
+
+    pstHead = (OBC_PACK_HEAD_T *)pstAbi->stBoot.uiTmpAddr;
+
+    /* 计算读取的块数量 */
+    count = pstHead->file_size / pstAbi->stBlk.iRdSize;
+    if (0 != (pstHead->file_size % pstAbi->stBlk.iRdSize))
+    {
+        /* 不能被块大小整除就多读一个块 */
+        count += 1;
+    }
+
+    /* 加载真实数据到内存 */
+    ulCnt = blk_dread(pstAbi->stBlk.pstBlkDev, start + 1, count, (void *)addr);
+    if (count != ulCnt)
+    {
+        printf("get partname info error\n");
+        return -1;
+    }
+```
+
+先把协议头读到uiTmpAddr，解析知道file_size，然后把真正的数据加载到addr
+
+```
+/* 第一种情况.fdt、kernel先取协议头 然后从协议头的下一块读数据*/
+if(strcmp(pstParts[iPartsIndex].lable, "fdt0") == 0
+        || strcmp(pstParts[iPartsIndex].lable, "fdt1") == 0
+        || strcmp(pstParts[iPartsIndex].lable, "kernel0") == 0
+        || strcmp(pstParts[iPartsIndex].lable, "kernel1") == 0){
+       
+ /*第二种情况. sysflag直接读数据 */      
+    }else {//把emmc的sysflag写到内存里 
+        ulCnt = blk_dread(pstAbi->stBlk.pstBlkDev, start , count, (void *)addr);
+        if (count != ulCnt)
+        {
+            printf("get partname info error\n");
+            return -1;
+        }
+    }
+```
+
+obc_blk_read_part_by_name函数修改（之前只适配fat、kernel加入协议头的情况，现新增read sysflag
+
+
+
+##### 成功实现：
+
+![img](OBC.assets/Snipaste_2026-04-23_20-09-47.png)
+
+
+
+#### 3.根据切换的分区先实现自动切换kernel0/1 在cmd_bootk里（已实现
+
+![img](OBC.assets/Snipaste_2026-04-23_16-37-12.png)
+
+![img](OBC.assets/Snipaste_2026-04-23_16-37-39.png)
+
+![img](OBC.assets/Snipaste_2026-04-23_20-17-13.png)
+
+#### 4.实现三次崩溃切换分区（如图为0分区启动 三次计数之后转到1分区启动
+
+![img](OBC.assets/Snipaste_2026-04-23_20-58-26.png)
+
+![img](OBC.assets/Snipaste_2026-04-23_20-58-57.png)
+
+通过SYS结构体fail_count实现，逻辑实现在cmd_bootk.c中
+
+![img](OBC.assets/Snipaste_2026-04-23_21-00-56.png)
 
 ### 3.CRC32校验
 
@@ -870,9 +694,10 @@ int obc_verify_pack_crc(OBC_PACK_HEAD_T *pstHead, const unsigned char *data)
 
 ![img](OBC.assets/CRC32.png)
 
+### 4.后续升级（有待实现
 
-
-
+- **数字签名与验签**：用 **OpenSSL/libcrypto** 为升级包生成 ECDSA/RSA 签名，在 U-Boot 中集成验签逻辑，**公钥烧录在 eMMC 的不可写区域或 OTP**。
+- **版本防回滚**：在私有协议头中增加 `version` 字段，U-Boot 启动时检查当前运行版本是否低于硬件记录的最低安全版本。
 
 
 
